@@ -1,0 +1,12 @@
+{
+  "name": "hierarchical-light-card",
+  "version": "1.0.0",
+  "description": "Home Assistant dashboard card: auto-discovered lights by floor, room and light.",
+  "type": "module",
+  "main": "dist/hierarchical-light-card.js",
+  "scripts": {
+"test": "node --test"
+  },
+  "license": "MIT",
+  "private": true
+}
