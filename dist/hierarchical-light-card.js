@@ -39,7 +39,7 @@ const REGISTRY_EVENTS = [
   'area_registry_updated',
   'floor_registry_updated',
 ];
-const HOLD_CAP_MS = 5000; // longest time a released value is shown before the real state is trusted again
+const HOLD_CAP_MS = 10000; // longest time a released value is shown before the real state is trusted again
 const KEY_COMMIT_MS = 300; // keyboard: send once the arrow keys have been idle this long
 const MIXED_TOLERANCE = 2; // brightness spread (in %) below which a group counts as uniform
 const REGISTRY_DEBOUNCE_MS = 300;
