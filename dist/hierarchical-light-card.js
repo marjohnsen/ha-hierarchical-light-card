@@ -1335,6 +1335,11 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       });
       const endGesture = (ev) => {
         if (!gesture || ev.pointerId !== gesture.id) return;
+        // A touch is captured by the element it started on (the label, the
+        // name, ...). Taking the capture over for the row makes that element
+        // lose it, and its "lostpointercapture" bubbles up to the row: that is
+        // not the end of the drag.
+        if (ev.type === 'lostpointercapture' && ev.target !== el) return;
         const wasActive = gesture.active;
         gesture = null;
         if (!wasActive) return;
