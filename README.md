@@ -49,7 +49,7 @@ Each row has three controls:
 
 Tapping the bulb of a room or floor turns off the lights that are on; if none are on, it turns them all on. Dragging sets every dimmable light in it to the same level. The command is sent once, when you release.
 
-When the lights in a room or floor are at different levels, the bar fades out and the row shows their range, such as `20–80%`.
+When the lights that are on in a room or floor are at different levels, the bar fades out and the row shows their range, such as `20–80%`.
 
 Tap a scene to activate it.
 

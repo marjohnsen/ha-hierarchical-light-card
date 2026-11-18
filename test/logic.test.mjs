@@ -357,7 +357,7 @@ test('aggregate: brightness is the average of dimmable lights that are on', () =
   assert.equal(aggregate(['light.c'], s).brightness, 0);
 });
 
-test('aggregate: mixed when dimmable lights are at different levels (off = 0)', () => {
+test('aggregate: mixed when dimmable lights that are on are at different levels', () => {
   const s = toStates(
     light('light.a', 'on', { brightness: 255 }),
     light('light.b', 'on', { brightness: 51 }),
@@ -371,7 +371,10 @@ test('aggregate: mixed when dimmable lights are at different levels (off = 0)', 
   // The range runs from the dimmest to the brightest light that is on; off lights are left out.
   assert.deepEqual([aggregate(['light.a', 'light.b'], s).min, aggregate(['light.a', 'light.b'], s).max], [20, 100]);
   assert.deepEqual([aggregate(['light.a', 'light.c'], s).min, aggregate(['light.a', 'light.c'], s).max], [100, 100]);
-  assert.equal(aggregate(['light.a', 'light.c'], s).mixed, true);
+  // Lights that are off do not count: one light on is one level.
+  assert.equal(aggregate(['light.a', 'light.c'], s).mixed, false);
+  assert.equal(aggregate(['light.a', 'light.c', 'light.c2'], s).mixed, false);
+  assert.equal(aggregate(['light.a', 'light.b', 'light.c'], s).mixed, true);
   assert.equal(aggregate(['light.b', 'light.b2'], s).mixed, false); // within tolerance
   assert.equal(aggregate(['light.c', 'light.c2'], s).mixed, false);
   assert.equal(aggregate(['light.a'], s).mixed, false);

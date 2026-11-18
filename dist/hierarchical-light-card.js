@@ -182,8 +182,7 @@ export function aggregate(entityIds, states) {
   const on = [];
   const off = [];
   const dimmable = [];
-  const levels = [];
-  const spread = []; // level of every controllable dimmable light, off = 0
+  const levels = []; // level of every dimmable light that is on
   let dimmableTotal = 0;
 
   for (const id of targets) {
@@ -192,10 +191,7 @@ export function aggregate(entityIds, states) {
     if (dim) dimmableTotal += 1;
     if (!isAvailable(stateObj)) continue;
     available.push(id);
-    if (dim) {
-      dimmable.push(id);
-      spread.push(stateObj.state === 'on' ? brightnessPct(stateObj) : 0);
-    }
+    if (dim) dimmable.push(id);
     if (stateObj.state === 'on') {
       on.push(id);
       if (dim) levels.push(brightnessPct(stateObj));
@@ -226,8 +222,9 @@ export function aggregate(entityIds, states) {
     // Lowest and highest level among the dimmable lights that are on.
     min: levels.length ? Math.min(...levels) : 0,
     max: levels.length ? Math.max(...levels) : 0,
-    // The controllable dimmable lights are not at one common level (off = 0).
-    mixed: spread.length > 1 && Math.max(...spread) - Math.min(...spread) > MIXED_TOLERANCE,
+    // The dimmable lights that are on are not at one common level. Lights
+    // that are off do not count.
+    mixed: levels.length > 1 && Math.max(...levels) - Math.min(...levels) > MIXED_TOLERANCE,
   };
 }
 
@@ -267,6 +264,8 @@ export function planBrightness(agg, pct) {
 /** True when the lights report the level that was asked for. */
 export function brightnessReached(agg, value) {
   if (value <= 0) return agg.brightness === 0; // no dimmable light is on any more
+  const on = new Set(agg.on);
+  if (!agg.dimmable.every((id) => on.has(id))) return false; // a light has not come on yet
   return !agg.mixed && Math.abs(agg.brightness - value) <= MIXED_TOLERANCE;
 }
 
@@ -1430,10 +1429,8 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
         el.style.setProperty('--pct', `${value}%`);
         setFlag(refs.slider, 'disabled', agg.dimmable.length === 0);
         setAttr(refs.slider, 'aria-label', `${row.name} brightness`);
-        // Different levels: the range among the lights that are on. If those
-        // all agree (the row is mixed only because some are off), one value.
-        const range = agg.max - agg.min > MIXED_TOLERANCE ? `${agg.min}\u2013${agg.max}%` : `${agg.brightness}%`;
-        const shown = mixed ? range : `${value}%`;
+        // Different levels: the range among the lights that are on.
+        const shown = mixed ? `${agg.min}\u2013${agg.max}%` : `${value}%`;
         setAttr(refs.slider, 'aria-valuetext', shown);
         valueText = unavailable ? '—' : shown;
       } else {
