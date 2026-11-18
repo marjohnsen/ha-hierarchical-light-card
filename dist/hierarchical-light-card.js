@@ -1425,9 +1425,12 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
         if (hold && typeof hold.value === 'number') {
           value = hold.value;
         } else if (hold) {
-          // Toggled: off is empty; on shows the level reported so far, else
-          // the level the row had last time, else full.
-          value = hold.on ? agg.brightness || el._lastPct || 100 : 0;
+          // Toggled: off is empty; on shows one level for as long as the hold
+          // lasts (the level reported so far, else the level the row had last
+          // time, else full), so the bar does not move while the lights come
+          // on one by one.
+          if (hold.on && hold.pct == null) hold.pct = agg.brightness || el._lastPct || 100;
+          value = hold.on ? hold.pct : 0;
         } else {
           mixed = agg.mixed; // different levels: a fade instead of a level
           if (value > 0 && !mixed) el._lastPct = value;
