@@ -743,28 +743,16 @@ const STYLES = `
     z-index: -1;
     top: 0;
     bottom: 0;
-    left: 0;
-    width: var(--pct, 0%);
+    left: var(--from, 0%);
+    width: calc(var(--pct, 0%) - var(--from, 0%));
     background: var(--hlc-active);
     opacity: 0.3;
     pointer-events: none;
-    transition: width 0.25s ease, opacity 0.15s;
+    transition: left 0.25s ease, width 0.25s ease, opacity 0.15s;
   }
   .row[data-state="partial"] .fill { opacity: 0.2; }
   .row.dragging .fill { opacity: 0.45; transition: none; }
-  /* Lights at different levels: no level is shown. The bar has no edge; it
-     fades out across the whole row instead. */
-  .fade {
-    display: none;
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    background: linear-gradient(90deg, var(--hlc-active), transparent);
-    opacity: 0.3;
-    pointer-events: none;
-  }
-  .row.mixed .fade { display: block; }
-  .row.mixed .fill { display: none; }
+
 
   .bulb {
     flex: none;
@@ -867,7 +855,6 @@ const STYLES = `
 
 const ROW_TEMPLATE = `
   <div class="fill"></div>
-  <div class="fade"></div>
   <button class="bulb" type="button"><ha-icon></ha-icon></button>
   <button class="label" type="button"><span class="name"></span><span class="secondary"></span></button>
   <input class="slider" type="range" min="1" max="100" step="1">
@@ -1438,13 +1425,14 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
           if (hold.on && hold.pct == null) hold.pct = agg.brightness || el._lastPct || 100;
           value = hold.on ? hold.pct : 0;
         } else {
-          mixed = agg.mixed; // different levels: a fade instead of a level
+          mixed = agg.mixed; // different levels: the bar spans their range
           if (value > 0 && !mixed) el._lastPct = value;
         }
 
         const text = String(Math.max(1, value)); // the slider starts at 1; an off row still shows an empty bar
         if (refs.slider.value !== text) refs.slider.value = text;
-        el.style.setProperty('--pct', `${value}%`);
+        el.style.setProperty('--from', mixed ? `${agg.min}%` : '0%');
+        el.style.setProperty('--pct', `${mixed ? agg.max : value}%`);
         setFlag(refs.slider, 'disabled', agg.dimmable.length === 0);
         setAttr(refs.slider, 'aria-label', `${row.name} brightness`);
         // Different levels: the range among the lights that are on.
@@ -1452,10 +1440,10 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
         setAttr(refs.slider, 'aria-valuetext', shown);
         valueText = unavailable ? '—' : shown;
       } else {
+        el.style.setProperty('--from', '0%');
         el.style.setProperty('--pct', lit ? '100%' : '0%');
         valueText = unavailable ? '—' : lit ? onText : offText;
       }
-      el.classList.toggle('mixed', mixed);
       el._canDrag = useSlider && agg.dimmable.length > 0;
       setFlag(refs.value, 'hidden', !cfg.show_percentage);
       setText(refs.value, valueText);
@@ -1615,7 +1603,7 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       const refs = el._refs;
       const value = Number(refs.slider.value);
       this._holds.set(el._row.key, { value, phase: 'editing', until: 0 });
-      el.classList.remove('mixed');
+      el.style.setProperty('--from', '0%');
       el.style.setProperty('--pct', `${value}%`);
       setAttr(refs.slider, 'aria-valuetext', `${value}%`);
       setText(refs.value, `${value}%`);
