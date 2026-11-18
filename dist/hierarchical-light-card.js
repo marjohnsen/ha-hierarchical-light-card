@@ -870,7 +870,7 @@ const ROW_TEMPLATE = `
   <div class="fade"></div>
   <button class="bulb" type="button"><ha-icon></ha-icon></button>
   <button class="label" type="button"><span class="name"></span><span class="secondary"></span></button>
-  <input class="slider" type="range" min="0" max="100" step="1">
+  <input class="slider" type="range" min="1" max="100" step="1">
   <span class="value"></span>
 
   <ha-icon class="chevron" icon="mdi:chevron-right" aria-hidden="true"></ha-icon>
@@ -1302,9 +1302,10 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       let gesture = null;
       const valueAt = (clientX) => {
         const rect = el.getBoundingClientRect();
-        const pad = 10; // makes 0 % and 100 % reachable without hitting the exact edge
+        const pad = 10; // makes 1 % and 100 % reachable without hitting the exact edge
         const ratio = (clientX - rect.left - pad) / Math.max(1, rect.width - 2 * pad);
-        return Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+        // Dimming runs from 1 to 100 %: switching off is the bulb's job.
+        return Math.max(1, Math.round(Math.max(0, Math.min(1, ratio)) * 100));
       };
       el.addEventListener('pointerdown', (ev) => {
         if (!el._canDrag || !ev.isPrimary || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
@@ -1441,7 +1442,7 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
           if (value > 0 && !mixed) el._lastPct = value;
         }
 
-        const text = String(value);
+        const text = String(Math.max(1, value)); // the slider starts at 1; an off row still shows an empty bar
         if (refs.slider.value !== text) refs.slider.value = text;
         el.style.setProperty('--pct', `${value}%`);
         setFlag(refs.slider, 'disabled', agg.dimmable.length === 0);

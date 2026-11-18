@@ -44,7 +44,7 @@ Each row has three controls:
 | Action | Result |
 | --- | --- |
 | Tap the bulb | Toggle the light, the room or the whole floor |
-| Drag the row sideways | Set the brightness; the bar behind the row shows the level |
+| Drag the row sideways | Set the brightness from 1 to 100%; the bar behind the row shows the level |
 | Tap the row | Go one level deeper, or open the light's more-info dialog |
 
 Tapping the bulb of a room or floor turns off the lights that are on; if none are on, it turns them all on. Dragging sets every dimmable light in it to the same level. The command is sent once, when you release.
