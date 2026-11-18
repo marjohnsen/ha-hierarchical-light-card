@@ -400,6 +400,11 @@ test('toggle: any on -> turn those off, otherwise turn all available on', () => 
   ]);
 
   assert.deepEqual(planToggle(aggregate(['light.x'], s)), []);
+
+  // While an earlier command may still be running, off reaches every available light.
+  assert.deepEqual(planToggle(aggregate(['light.a', 'light.b', 'light.x'], s), true), [
+    { domain: 'light', service: 'turn_off', data: {}, target: { entity_id: ['light.a', 'light.b'] } },
+  ]);
 });
 
 test('brightness: only available dimmable lights receive brightness_pct', () => {
@@ -419,6 +424,10 @@ test('brightness: only available dimmable lights receive brightness_pct', () => 
     { domain: 'light', service: 'turn_off', data: {}, target: { entity_id: ['light.a'] } },
   ]);
   assert.deepEqual(planBrightness(aggregate(['light.d', 'switch.s'], s), 50), []);
+  // While an earlier command may still be running, 0 % reaches every available dimmable light.
+  assert.deepEqual(planBrightness(aggregate(ids, s), 0, true), [
+    { domain: 'light', service: 'turn_off', data: {}, target: { entity_id: ['light.a', 'light.b'] } },
+  ]);
 });
 
 test('group overlap: no light is addressed twice', () => {

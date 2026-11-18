@@ -243,19 +243,27 @@ function callsByDomain(entityIds, service, data = {}) {
   }));
 }
 
-/** Any light on -> turn those off. Otherwise turn every available light on. */
-export function planToggle(agg) {
+/**
+ * Any light on -> turn those off. Otherwise turn every available light on.
+ * With `all`, turning off reaches every available light, not only those
+ * reported on: used while an earlier command may still be switching lights on.
+ */
+export function planToggle(agg, all = false) {
   if (!agg.available.length) return [];
-  return agg.on.length ? callsByDomain(agg.on, 'turn_off') : callsByDomain(agg.available, 'turn_on');
+  if (agg.on.length) return callsByDomain(all ? agg.available : agg.on, 'turn_off');
+  return callsByDomain(agg.available, 'turn_on');
 }
 
-/** Brightness only ever targets available, dimmable lights. */
-export function planBrightness(agg, pct) {
+/**
+ * Brightness only ever targets available, dimmable lights. With `all`, 0 %
+ * turns off every one of them, not only those reported on (see planToggle).
+ */
+export function planBrightness(agg, pct, all = false) {
   const value = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
   if (!agg.dimmable.length) return [];
   if (value === 0) {
     const onSet = new Set(agg.on);
-    const lit = agg.dimmable.filter((id) => onSet.has(id));
+    const lit = all ? agg.dimmable : agg.dimmable.filter((id) => onSet.has(id));
     return lit.length ? callsByDomain(lit, 'turn_off') : [];
   }
   return callsByDomain(agg.dimmable, 'turn_on', { brightness_pct: value });
@@ -898,6 +906,7 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       this._crumbs = [];
       this._rowEls = new Map();
       this._holds = new Map(); // row key -> { value, phase, until }, see holdActive()
+      this._lastSent = 0; // time of the last light command, see _commandRecent()
 
       this._unsubs = [];
       this._subToken = null;
@@ -1558,7 +1567,9 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       const prev = this._holds.get(row.key);
       const pending = !!prev && prev.phase !== 'editing' && holdActive(prev, agg, Date.now());
       const on = (pending ? assumedOnCount(agg, prev) : agg.on.length) === 0;
-      const calls = pending ? callsByDomain(agg.available, on ? 'turn_on' : 'turn_off') : planToggle(agg);
+      const calls = pending
+        ? callsByDomain(agg.available, on ? 'turn_on' : 'turn_off')
+        : planToggle(agg, this._commandRecent());
       this._sendHeld(row.key, { on, phase: 'sending', until: Date.now() + HOLD_CAP_MS }, calls);
     }
 
@@ -1568,6 +1579,7 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
      * the hold, so an older call that finishes later cannot release it.
      */
     _sendHeld(key, hold, calls) {
+      this._lastSent = Date.now();
       this._holds.set(key, hold);
       this._updateRows();
       this._callAll(calls).then((ok) => {
@@ -1579,6 +1591,14 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
       setTimeout(() => {
         if (this._holds.get(key) === hold) this._updateRows();
       }, HOLD_CAP_MS + 50);
+    }
+
+    /**
+     * True while an earlier command from this card may still be switching
+     * lights: the reported states cannot be trusted to tell which are on.
+     */
+    _commandRecent() {
+      return Date.now() - this._lastSent < HOLD_CAP_MS;
     }
 
     /** Show the value being set on the row; nothing is sent. */
@@ -1608,7 +1628,7 @@ if (typeof window !== 'undefined' && typeof HTMLElement !== 'undefined' && windo
         this._holds.delete(key);
         return;
       }
-      const calls = planBrightness(aggregate(el._row.ids, this._hass.states), value);
+      const calls = planBrightness(aggregate(el._row.ids, this._hass.states), value, this._commandRecent());
       this._sendHeld(key, { value, phase: 'sending', until: Date.now() + HOLD_CAP_MS }, calls);
     }
 
